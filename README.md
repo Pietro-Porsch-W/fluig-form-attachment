@@ -39,7 +39,7 @@ Basta ter um campo do tipo texto e instanciar o plugin para esse campo.
 ```html
 <div class="form-group">
     <label for="cnh">Teste 001</label>
-    <input type="text" class="form-control" readonly name="cnh" id="cnh" data-filename="CNH">
+    <input type="text" class="form-control" readonly name="cnh" id="cnh" data-filename="CNH" data-accept="image/*,.pdf">
 </div>
 ```
 
@@ -64,6 +64,7 @@ propriedades de configuração:
 - **showActionButton**: indica se deve exibir os botões de Ação (Upload e Delete). `true` por padrão, `false` para não exibir (campo que não deve permitir upload/delete no momento);
 - **filename**: a descrição/nome do anexo. Caso exista o atributo `data-filename` no campo do formulário ele terá preferência;
 - **prefixName**:  Adiciona prefixo à descrição do anexo. `false` por padrão. `true` para prefixo aleatório (será usado um pedaço de um UUID) ou uma `string` para um prefixo fixo.
+- **accept**: funciona igual ao atributo accept do input file. Caso exista o atributo `data-accept` no campo do formulário ele terá preferência;
 
 Quando o campo estiver **Desabilitado** o botão de Upload/Delete não será exibido, mesmo se
 o parâmetro `showActionButton` estiver como `true`.
