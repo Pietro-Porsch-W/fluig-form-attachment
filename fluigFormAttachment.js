@@ -11,6 +11,7 @@
  * @property {boolean} showActionButton Exibe o botão de upload/delete. True por padrão.
  * @property {boolean} filename Nome que será salvo como descrição do Anexo. Preferencialmente usará o conteúdo do atributo data-filename do elemento.
  * @property {boolean|string} prefixName Adiciona prefixo ao anexo. False por padrão, True para prefixo aleatório, String para prefixo fixo.
+ * @property {string} accept Tipos de arquivos aceitos. Segue a regra do accept do input tipo file.
  */
 
 ;(function ($) {
@@ -29,6 +30,7 @@
         showActionButton: true,
         filename: "Anexo",
         prefixName: false,
+        accept: "*",
     };
 
     /**
@@ -112,8 +114,10 @@
          * @returns {boolean}
          */
         hasAttachment() {
-            return this.#attachmentFilename.length > 0
-                && parent.ECM.attachmentTable.getData().findIndex(attachment => attachment.description === this.#attachmentFilename) !== -1;
+            const filename = this.#attachmentFilename || this.#input.val() || this.#input.text().trim();
+
+            return filename.length > 0
+                && parent.ECM.attachmentTable.getData().findIndex(attachment => attachment.description === filename) !== -1;
         }
 
         /**
@@ -220,41 +224,24 @@
             if (parent.ECM.attachmentTable.getData().findIndex(attachment => attachment.description === filename) !== -1) {
                 FLUIGC.toast({
                     title: "Atenção",
-                    message: "Já existe um anexo com esse nome",
+                    message: "Já existe um anexo com essa descrição",
                     type: "warning",
                 })
                 return;
             }
 
-            const uploadBtn = $("#ecm-navigation-inputFile-clone", parent.document)
+            this.#input.val(filename);
+
+            parent.$("#ecm-navigation-inputFile-clone")
                 .attr({
                     "data-on-camera": "true",
                     "data-file-name-camera": filename,
+                    "data-inputid": this.#input.attr("id"),
                     "multiple": false,
+                    "accept": this.#input.data("accept") || this.#settings.accept,
                 })
-                .trigger("click");
-
-
-            uploadBtn.on(`change.${pluginName}`, (evt) => {
-                uploadBtn.off(`change.${pluginName}`);
-
-                const newAttachment = evt.target.files[0];
-
-                if (parent.ECM.maxUploadSize > 0 && newAttachment.size > parent.ECM.maxUploadSize * 1024 * 1024) {
-                    return;
-                }
-
-                // Na atividade início não permite arquivos duplicados, mas nas outras atividades é permitido
-                if (!parent.ECM.workflowView.processInstanceId) {
-                    const attachmentIndex = parent.ECM.attachmentTable.getData().findIndex(attachment => attachment.name === newAttachment.name);
-
-                    if (attachmentIndex !== -1) {
-                        return;
-                    }
-                }
-
-                setTimeout(() => this.#input.val(filename).trigger("change"), 500);
-            });
+                .trigger("click")
+            ;
         }
 
         #viewAttachment() {
@@ -332,8 +319,25 @@
         return;
     }
 
-    // Oculta aba de anexos
-    $(() => $("#tab-attachments", parent.document).hide());
+    $(() => {
+        // Oculta aba anexos
+        $("#tab-attachments", parent.document).hide();
+
+        // Valida que o anexo foi enviado
+        parent.$("#ecm_navigation_fileupload")
+            .on(`fileuploaddone.${pluginName}`, function() {
+                const inputId = parent.document.getElementById("ecm-navigation-inputFile-clone").getAttribute("data-inputid");
+                const input = $(`#${inputId}`);
+
+                if (!input.fluigFormAttachment("hasAttachment")) {
+                    input.val("");
+                }
+
+                input.trigger("change");
+            })
+        ;
+    });
+
 
     $("head").append(`<style>
 .${pluginName}Component {
