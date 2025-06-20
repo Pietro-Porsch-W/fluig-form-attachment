@@ -9,9 +9,10 @@ do formulário do processo, assim devemos confiar que os usuários vão colocar 
 corretamente na aba anexos e depois gastar tempo identificando cada anexo, pois usuários
 dificilmente respeitarão alguma regra de nomenclatura.
 
-Para permitir esse vínculo entre os campos do formulário e os anexos o
+Para permitir esse vínculo entre os campos do formulário e os anexos, o
 [Sérgio Machado](https://www.linkedin.com/in/sergio-machado-analista-fluig/)
-criou o [ComponenteAnexos](https://github.com/sergiomachadosilva/fluig-utils/tree/main/projetos/ComponenteAnexos), que é uma biblioteca JS/CSS/HTML, permitindo um maior controle dos
+criou o [ComponenteAnexos](https://github.com/sergiomachadosilva/fluig-utils/tree/main/projetos/ComponenteAnexos),
+que é uma biblioteca JS/CSS/HTML, permitindo um maior controle dos
 anexos. Esse projeto do Sérgio serviu como base para a construção desse Plugin JQuery.
 
 A intenção desse plugin é simplificar ainda mais o tratamento dos anexos em formulários
@@ -20,6 +21,14 @@ que estão abertos em um Processo.
 ## Atenção
 
 Esse plugin não funciona na versão mobile dentro do aplicativo My Fluig.
+
+Testado no Fluig 1.8.1 e 1.8.2. Quando lançar o Fluig 2.0 teremos que
+rever o funcionamento do plugin.
+
+Esse plugin está usando somente a "descrição" do anexo como vínculo entre
+formulário e anexo. Ainda está em testes se isso é o suficiente ou se
+o ideal seria ter o nome físico do arquivo salvo em algum lugar, assim
+como o ComponenteAnexos do Sérgio Machado.
 
 ## Instalação
 
@@ -39,7 +48,9 @@ Basta ter um campo do tipo texto e instanciar o plugin para esse campo.
 ```html
 <div class="form-group">
     <label for="cnh">Teste 001</label>
-    <input type="text" class="form-control" readonly name="cnh" id="cnh" data-filename="CNH" data-accept="image/*,.pdf">
+    <input type="text" class="form-control" readonly
+        name="cnh" id="cnh" data-filename="CNH" data-accept="image/*,.pdf"
+    >
 </div>
 ```
 
@@ -49,6 +60,9 @@ do processo e nesse caso o plugin não funcionará.
 
 O atributo `data-filename` indica a "descrição" do anexo, que é o valor que aparece na Aba
 Anexos. Esse nome será utilizado para vincular o campo do formulário ao anexo.
+
+O atributo `data-accept` indica o tipo de arquivo permitido. Funciona exatamente como
+o atributo `accept` do campo input file ([documentação](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Attributes/accept)).
 
 Então no JavaScript basta executar:
 
