@@ -139,14 +139,10 @@
 
         #getButtonsTemplate() {
             const hasFileSelected = this.#attachmentFilename.length !== 0;
-            const element = this.#input.get(0);
 
             let buttonsTemplate = "";
 
-            if (this.#settings.showActionButton
-                && element.nodeName.toLowerCase() === "input"
-                && !element.disabled
-            ) {
+            if (this.#canDisplayActionButton()) {
                 buttonsTemplate += hasFileSelected
                     ? `<button type="button" class="${pluginName}BtnAction ${pluginName}BtnDeleteFile btn btn-danger btn-sm" title="Remover Anexo"><i class="flaticon flaticon-trash icon-sm"></i></button>`
                     : `<button type="button" class="${pluginName}BtnAction ${pluginName}BtnUpuloadFile btn btn-success btn-sm" title="Enviar Anexo"><i class="flaticon flaticon-upload icon-sm"></i></button>`
@@ -158,10 +154,20 @@
             return buttonsTemplate;
         }
 
+        #canDisplayActionButton() {
+            const element = this.#input.get(0);
+
+            return this.#settings.showActionButton
+                && element.nodeName.toLowerCase() === "input"
+                && !element.disabled
+                && parent.ECM.workflowView.userPermissions.indexOf("P") >= 0
+            ;
+        }
+
         #changeButtonsState() {
             const hasFileSelected = this.#attachmentFilename.length !== 0;
 
-            if (this.#settings.showActionButton) {
+            if (this.#canDisplayActionButton()) {
                 const buttonClasses = [];
                 let iconClass = "";
                 let title = "";
@@ -230,13 +236,12 @@
                 return;
             }
 
-            this.#input.val(filename);
-
             parent.$("#ecm-navigation-inputFile-clone")
                 .attr({
                     "data-on-camera": "true",
                     "data-file-name-camera": filename,
                     "data-inputid": this.#input.attr("id"),
+                    "data-filename": filename,
                     "multiple": false,
                     "accept": this.#input.data("accept") || this.#settings.accept,
                 })
@@ -319,23 +324,48 @@
         return;
     }
 
+    const loading = FLUIGC.loading(window, {
+        title: "Aguarde",
+        textMessage: "Enviando arquivo",
+    })
+
     $(() => {
         // Oculta aba anexos
         $("#tab-attachments", parent.document).hide();
 
-        // Valida que o anexo foi enviado
         parent.$("#ecm_navigation_fileupload")
-            .on(`fileuploaddone.${pluginName}`, function() {
-                const inputId = parent.document.getElementById("ecm-navigation-inputFile-clone").getAttribute("data-inputid");
-                const input = $(`#${inputId}`);
+            .on(`fileuploadadd.${pluginName}`, function(e, data) {
+                // Impede abrir o Loading caso tenha erro no arquivo
 
-                if (!input.fluigFormAttachment("hasAttachment")) {
-                    input.val("");
+                const file = data.files[0];
+
+                if (parent.ECM.maxUploadSize > 0 && file.size >= (parent.ECM.maxUploadSize * 1024 * 1024)) {
+                    return;
                 }
 
-                input.trigger("change");
+                if (parent.ECM.newAttachmentsDocs.length && parent.ECM.newAttachmentsDocs.findIndex(attachment => attachment.name === file.name) !== -1) {
+                    return;
+                }
+
+                loading.show();
             })
-        ;
+            .on(`fileuploadfail.${pluginName}`, () => loading.hide())
+            .on(`fileuploaddone.${pluginName}`, function() {
+                // Atualiza o campo do arquivo caso o upload tenha ocorrido
+
+                loading.hide();
+
+                const btnUpload = parent.document.getElementById("ecm-navigation-inputFile-clone");
+                const filename = btnUpload.getAttribute("data-filename");
+
+                if (parent.ECM.attachmentTable.getData().findIndex(attachment => attachment.description === filename) === -1) {
+                    return;
+                }
+
+                $(`#${btnUpload.getAttribute("data-inputid")}`).val(filename).trigger("change");
+            });
+
+        parent.$(document).on(`fileuploadstop.${pluginName}`, () => loading.hide());
     });
 
 
