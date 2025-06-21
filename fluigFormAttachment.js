@@ -192,6 +192,10 @@
         }
 
         #confirmDeleteAttachment() {
+            if (!this.#canDisplayActionButton()) {
+                return;
+            }
+
             FLUIGC.message.confirm({
                 message: `Deseja remover o anexo <b>${this.#attachmentFilename}</b>?`,
                 title: 'Confirmação',
@@ -207,6 +211,10 @@
         }
 
         #uploadAttachment() {
+            if (!this.#canDisplayActionButton()) {
+                return;
+            }
+
             let filename = this.#input.data("filename") || this.#settings.filename;
 
             if (this.#settings.prefixName === true) {
