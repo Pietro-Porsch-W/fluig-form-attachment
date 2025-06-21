@@ -1,6 +1,8 @@
 /**
  * Plugin JQuery para trabalhar com anexos nos formulários dentro do processo
  *
+ * @author Bruno Gasparetto
+ * @see https://github.com/brunogasparetto/fluig-form-attachment
  */
 
 
@@ -137,21 +139,24 @@
             parent.WKFViewAttachment.removeAttach([attachmentIndex]);
         }
 
+        showActionButton() {
+            this.#settings.showActionButton = true;
+            this.#input.trigger("change");
+        }
+
+        hideActionButton() {
+            this.#settings.showActionButton = false;
+            this.#input.trigger("change");
+        }
+
         #getButtonsTemplate() {
             const hasFileSelected = this.#attachmentFilename.length !== 0;
+            const canShowActionButton = this.#canDisplayActionButton();
 
-            let buttonsTemplate = "";
-
-            if (this.#canDisplayActionButton()) {
-                buttonsTemplate += hasFileSelected
-                    ? `<button type="button" class="${pluginName}BtnAction ${pluginName}BtnDeleteFile btn btn-danger btn-sm" title="Remover Anexo"><i class="flaticon flaticon-trash icon-sm"></i></button>`
-                    : `<button type="button" class="${pluginName}BtnAction ${pluginName}BtnUpuloadFile btn btn-success btn-sm" title="Enviar Anexo"><i class="flaticon flaticon-upload icon-sm"></i></button>`
-                ;
-            }
-
-            buttonsTemplate += `<button type="button" class="${pluginName}BtnViewerFile btn btn-info btn-sm" ${hasFileSelected ? '' : 'style="display:none"'} title="Visualizar Anexo"><i class="flaticon flaticon-view icon-sm"></i></button>`;
-
-            return buttonsTemplate;
+            return `<button type="button" class="${pluginName}BtnAction ${pluginName}BtnDeleteFile btn btn-danger btn-sm ${(canShowActionButton && hasFileSelected) ? '' : 'hide'}" title="Remover Anexo"><i class="flaticon flaticon-trash icon-sm"></i></button>`
+                + `<button type="button" class="${pluginName}BtnAction ${pluginName}BtnUpuloadFile btn btn-success btn-sm ${(canShowActionButton && !hasFileSelected) ? '' : 'hide'}" title="Enviar Anexo"><i class="flaticon flaticon-upload icon-sm"></i></button>`
+                + `<button type="button" class="${pluginName}BtnViewerFile btn btn-info btn-sm ${hasFileSelected ? '' : 'hide'}" title="Visualizar Anexo"><i class="flaticon flaticon-view icon-sm"></i></button>`
+            ;
         }
 
         #canDisplayActionButton() {
@@ -168,37 +173,21 @@
             const hasFileSelected = this.#attachmentFilename.length !== 0;
 
             if (this.#canDisplayActionButton()) {
-                const buttonClasses = [];
-                let iconClass = "";
-                let title = "";
-
                 if (hasFileSelected) {
-                    buttonClasses.push(`${pluginName}BtnDeleteFile`);
-                    buttonClasses.push("btn-danger");
-                    iconClass = "flaticon-trash";
-                    title = "Remover Anexo";
+                    this.#container.find(`.${pluginName}BtnUpuloadFile`).addClass("hide");
+                    this.#container.find(`.${pluginName}BtnDeleteFile`).removeClass("hide");
                 } else {
-                    buttonClasses.push(`${pluginName}BtnUpuloadFile`);
-                    buttonClasses.push("btn-success");
-                    iconClass = "flaticon-upload";
-                    title = "Enviar Anexo";
+                    this.#container.find(`.${pluginName}BtnDeleteFile`).addClass("hide");
+                    this.#container.find(`.${pluginName}BtnUpuloadFile`).removeClass("hide");
                 }
-
-                this.#container.find(`.${pluginName}BtnAction`)
-                    .removeClass([`${pluginName}BtnUpuloadFile`, `${pluginName}BtnDeleteFile`, "btn-danger", "btn-success"])
-                    .addClass(buttonClasses)
-                    .attr("title", title)
-                    .trigger("blur")
-                    .find("i")
-                        .removeClass(["flaticon-trash", "flaticon-upload"])
-                        .addClass(iconClass)
-                ;
+            } else {
+                this.#container.find(`.${pluginName}BtnAction`).addClass("hide");
             }
 
             if (hasFileSelected) {
-                this.#container.find(`.${pluginName}BtnViewerFile`).show();
+                this.#container.find(`.${pluginName}BtnViewerFile`).removeClass("hide");
             } else {
-                this.#container.find(`.${pluginName}BtnViewerFile`).hide();
+                this.#container.find(`.${pluginName}BtnViewerFile`).addClass("hide");
             }
         }
 
