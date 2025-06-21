@@ -30,6 +30,12 @@ formulário e anexo. Ainda está em testes se isso é o suficiente ou se
 o ideal seria ter o nome físico do arquivo salvo em algum lugar, assim
 como o ComponenteAnexos do Sérgio Machado.
 
+No Fluig 1.8.1 identifiquei um bug quando insere um anexo por vez e então remove
+algum anexo. Nessa situação a tabela de anexos é esvaziada. Porém esse bug ocorre
+mesmo quando usando a Aba de Anexos, sendo um bug do próprio Fluig e não do Plugin.
+Esse bug ocorre somente na primeira atividade do processo, quando ainda não há ID
+da Solicitação.
+
 ## Instalação
 
 Basta adicionar o script `fluigFormAttachment.js` ou `fluigformAttachment.min.js` ao
@@ -75,15 +81,23 @@ $("#cnh").fluigFormAttachment();
 Ao instanciar o plugin para os elementos é possível passar um objeto com as seguintes
 propriedades de configuração:
 
-- **showActionButton**: indica se deve exibir os botões de Ação (Upload e Delete). `true` por padrão, `false` para não exibir (campo que não deve permitir upload/delete no momento);
-- **filename**: a descrição/nome do anexo. Caso exista o atributo `data-filename` no campo do formulário ele terá preferência;
-- **prefixName**:  Adiciona prefixo à descrição do anexo. `false` por padrão. `true` para prefixo aleatório (será usado um pedaço de um UUID) ou uma `string` para um prefixo fixo.
-- **accept**: funciona igual ao atributo accept do input file. Caso exista o atributo `data-accept` no campo do formulário ele terá preferência;
+| Parâmetro | Tipo | Padrão | Descrição |
+| --- | --- | --- | --- |
+| **showActionButton** | boolean | `true` | Indica se deve exibir os botões de Ação (Upload ou Delete) |
+| **filename** | string | `"Anexo"` | Nome/Descrição do Anexo. Caso exista o atributo `data-filename` no campo do formulário ele terá preferência. **Cuidado**: Não pode ter mais de um anexo com o mesmo Nome/Descrição. |
+| **prefixName** | boolean\|string | `false` | Adiciona prefixo à descrição do anexo. Caso `true` criará um prefixo aleatório usando parte de um UUID. No caso de `string` a usará como prefixo fixo, adicionando `-` como separador. |
+| **accept** | string | `"*"` | Funciona igual ao atributo accept do input file ([documentação](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Attributes/accept)). Caso exista o atributo `data-accept` no campo do formulário ele terá preferência. |
 
-Quando o campo estiver **Desabilitado** o botão de Upload/Delete não será exibido, mesmo se
-o parâmetro `showActionButton` estiver como `true`.
+Se ao instanciar o Plugin o campo estiver **Desabilitado** ou o usuário não possuir permissão
+de complemento no processo, o botão de Upload/Delete não será exibido, mesmo se o parâmetro
+`showActionButton` estiver como `true`. Caso deseje exibir/ocultar o botão de ação dinamicamente
+utilize os métodos `showActionButton` e `hideActionButton`.
 
 A intenção da configuração `prefixName` é auxiliar nos casos de Tabela Pai Filho.
+
+Lembre-se de tratar as situações nas quais o processo estiver somente em modo de
+visualização e nos casos que os campos não devem permitir upload/delete dos
+anexos.
 
 Exemplos:
 
@@ -92,7 +106,14 @@ $("#cnh").fluigFormAttachment({
     showActionButton: false,
 });
 
-// Tabela Pai Filho
+// Exibe os botões de visualização em todos os filhos já existentes da Pai Filho
+// Pulamos a primeira TR por ser a base para gerar as demais filhas
+$("#tabelaPaiFilho tbody tr:not(:first-child)")
+    .find(".anexo")
+    .fluigFormAttachment({ showActionButton: false })
+;
+
+// Tabela Pai Filho - adiciona com prefixo automático para cada arquivo
 $("#adicionar").on("click", function () {
     const index = wdkAddChild("tabelaPaiFilho");
     $(`#cnh___${index}`).fluigFormAttachment({
@@ -125,15 +146,19 @@ $("#adicionar").on("click", function () {
 
 ### Métodos
 
-É possível executar alguns métodos do Plugin para manipular os anexos. Os seguintes
-métodos estão disponíveis:
+É possível executar alguns métodos do Plugin para manipular os anexos. Para
+executar um método basta chamar o plugin no campo indicando passando o nome
+do método ao invés do objeto de parâmetros.
 
-- **hasAttachment**: Indica se o campo possuí anexo (tem descrição e o anexo está na tabela de anexos). Este método é executado em um único campo;
-- **isValid**: Indica se o campo está válido. Caso ele possua um valor (foi feito upload do anexo), mas o anexo não está na tabela de anexos, indicará campo inválido. Este método é executado em um único campo;
-- **deleteAttachment**: Remove o anexo daquele campo. Útil para quando excluir uma linha de uma tabela Pai Filho;
+Os seguintes métodos estão disponíveis:
 
-Para executar um método basta chamar o plugin no campo indicando passando o nome do método ao invés
-do objeto de parâmetros.
+| Método | Executa em | Retorno | Descrição |
+| --- | --- | --- | --- |
+| **hasAttachment** | Primeiro Elemento | `boolean` | Indica se o campo possuí anexo (tem descrição e o anexo está na tabela de anexos) |
+| **isValid** | Primeiro Elemento | `boolean` | Indica se o campo está válido. Caso ele possua um valor (foi feito upload do anexo), mas o anexo não está na tabela de anexos, indicará campo inválido. Este método é executado em um único campo |
+| **deleteAttachment** | Todos Elementos | `JQuery` | Remove o anexo do campo. Útil para quando excluir uma linha de uma tabela Pai Filho |
+| **showActionButton** | Todos Elementos | `JQuery` | Exibe o botão de ação |
+| **hideActionButton** | Todos Elementos | `JQuery` | Oculta o botão de ação |
 
 Exemplos:
 
@@ -153,4 +178,26 @@ $("#tabelaPaiFilho").on("click", ".removeItem", function() {
     $(".anexos", this.closest("tr")).fluigFormAttachment("deleteAttachment");
     fnWdkRemoveChild(this);
 });
+
+// Habilitando/Desabilitando a ação de acordo com o preenchimento de um campo
+$("#descricao").on("change", function () {
+    this.value = this.value.trim();
+
+    if (!this.value.length) {
+        $("#anexo").fluigFormAttachment("hideActionButton");
+        return;
+    }
+
+     // Trocando o filename pra ser dinâmico com a descrição
+     // Caso exista uma descrição igual nos anexos exibirá erro
+     // no momento de selecionar o arquivo.
+    $("#anexo")
+        .data("filename", this.value)
+        .fluigFormAttachment("showActionButton")
+    ;
+});
 ```
+
+## Contribuições
+
+Sinta-se à vontade para indicar bugs e sugestões abrindo issues.
