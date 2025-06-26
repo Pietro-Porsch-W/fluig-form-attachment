@@ -108,8 +108,7 @@ $("#cnh").fluigFormAttachment({
 
 // Exibe os botões de visualização em todos os filhos já existentes da Pai Filho
 // Pulamos a primeira TR por ser a base para gerar as demais filhas
-$("#tabelaPaiFilho tbody tr:not(:first-child)")
-    .find(".anexo")
+$("#tabelaPaiFilho tbody tr:not(:first-child) .anexo")
     .fluigFormAttachment({ showActionButton: false })
 ;
 
@@ -175,7 +174,7 @@ function beforeSendValidate(numState, nextState) {
 
 // Removendo anexos da Pai Filho ao excluir linha
 $("#tabelaPaiFilho").on("click", ".removeItem", function() {
-    $(".anexos", this.closest("tr")).fluigFormAttachment("deleteAttachment");
+    $(".anexos", $(this).closest("tr")).fluigFormAttachment("deleteAttachment");
     fnWdkRemoveChild(this);
 });
 
