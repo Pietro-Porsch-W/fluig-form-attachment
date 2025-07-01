@@ -163,9 +163,11 @@
             const element = this.#input.get(0);
 
             return this.#settings.showActionButton
+                && parent.ECM.workflowView.userPermissions.indexOf("P") >= 0
+                && location.href.includes('ManagerMode')
+                && !location.href.includes('token')
                 && element.nodeName.toLowerCase() === "input"
                 && !element.disabled
-                && parent.ECM.workflowView.userPermissions.indexOf("P") >= 0
             ;
         }
 
