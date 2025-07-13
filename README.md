@@ -151,13 +151,15 @@ do método ao invés do objeto de parâmetros.
 
 Os seguintes métodos estão disponíveis:
 
-| Método | Executa em | Retorno | Descrição |
-| --- | --- | --- | --- |
-| **hasAttachment** | Primeiro Elemento | `boolean` | Indica se o campo possuí anexo (tem descrição e o anexo está na tabela de anexos) |
-| **isValid** | Primeiro Elemento | `boolean` | Indica se o campo está válido. Caso ele possua um valor (foi feito upload do anexo), mas o anexo não está na tabela de anexos, indicará campo inválido. Este método é executado em um único campo |
-| **deleteAttachment** | Todos Elementos | `JQuery` | Remove o anexo do campo. Útil para quando excluir uma linha de uma tabela Pai Filho |
-| **showActionButton** | Todos Elementos | `JQuery` | Exibe o botão de ação |
-| **hideActionButton** | Todos Elementos | `JQuery` | Oculta o botão de ação |
+| Método | Executa em | Parâmetros | Retorno | Descrição |
+| --- | --- | --- | --- | --- |
+| **hasAttachment** | Primeiro Elemento | - | `boolean` | Indica se o campo possuí anexo (tem descrição e o anexo está na tabela de anexos) |
+| **isValid** | Primeiro Elemento | - | `boolean` | Indica se o campo está válido. Caso ele possua um valor (foi feito upload do anexo), mas o anexo não está na tabela de anexos, indicará campo inválido. Este método é executado em um único campo |
+| **deleteAttachment** | Todos Elementos | - | `JQuery` | Remove o anexo do campo. Útil para quando excluir uma linha de uma tabela Pai Filho |
+| **showActionButton** | Todos Elementos | - | `JQuery` | Exibe o botão de ação |
+| **hideActionButton** | Todos Elementos | - | `JQuery` | Oculta o botão de ação |
+| **prefixName** | Todos Elementos | string\|boolean | `JQuery` | Altera o prefixName para os elementos |
+| **filename** | Todos Elementos | string, string\|boolean | `JQuery` | Altera o filename configurado para os elementos. Pode passar, como segundo parâmetro, o prefixName |
 
 Exemplos:
 
@@ -187,13 +189,21 @@ $("#descricao").on("change", function () {
         return;
     }
 
-     // Trocando o filename pra ser dinâmico com a descrição
-     // Caso exista uma descrição igual nos anexos exibirá erro
-     // no momento de selecionar o arquivo.
+    // Trocando o filename pra ser dinâmico com a descrição
+    // Caso exista uma descrição igual nos anexos exibirá erro
+    // no momento de selecionar o arquivo.
     $("#anexo")
         .data("filename", this.value)
         .fluigFormAttachment("showActionButton")
     ;
+
+    // Altera o filename igual ao exemplo anterior
+    $("#anexo").fluigFormAttachment("filename", this.value).fluigFormAttachment("showActionButton");
+
+    // Altera prefixName no componente
+    $("#anexo").fluigFormAttachment("prefixName", true);
+    // ou
+    $("#anexo").fluigFormAttachment("prefixName", "novoprefixo");
 });
 ```
 
