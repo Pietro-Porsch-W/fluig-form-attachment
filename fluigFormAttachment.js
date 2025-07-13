@@ -11,7 +11,7 @@
  *
  * @typedef AttachmentSettings
  * @property {boolean} showActionButton Exibe o botão de upload/delete. True por padrão.
- * @property {boolean} filename Nome que será salvo como descrição do Anexo. Preferencialmente usará o conteúdo do atributo data-filename do elemento.
+ * @property {boolean} filename Nome que será salvo como descrição do Anexo.
  * @property {boolean|string} prefixName Adiciona prefixo ao anexo. False por padrão, True para prefixo aleatório, String para prefixo fixo.
  * @property {string} accept Tipos de arquivos aceitos. Segue a regra do accept do input tipo file.
  */
@@ -24,6 +24,14 @@
     const isString = item => typeof item === "string";
 
     /**
+     * Procura o índice do anexo de acordo com sua descrição
+     *
+     * @param {string} filename
+     * @returns {number} -1 se não encontrar
+     */
+    const attachmentFindIndex = (filename) => parent.ECM.attachmentTable.getData().findIndex(attachment => attachment.description === filename);
+
+    /**
      * Configuração padrão
      *
      * @type {AttachmentSettings}
@@ -34,16 +42,6 @@
         prefixName: false,
         accept: "*",
     };
-
-    /**
-     * Métodos que serão executados somente no primeiro elemento
-     *
-     * @type {string[]}
-     */
-    const methodsOnlyFirstElement = [
-        "isValid",
-        "hasAttachment",
-    ];
 
     class Plugin {
         /**
@@ -73,6 +71,12 @@
          * @param {AttachmentSettings} options
          */
         constructor(element, options) {
+
+            // Garantir um ID para o Input
+            if (!element.id && element.nodeName.toLowerCase() === "input") {
+                element.id = FLUIGC.utilities.randomUUID();
+            }
+
             this.#settings = $.extend({}, defaults, options);
             this.#input = $(element);
             this.#attachmentFilename = this.#input.val() || this.#input.text().trim();
@@ -118,8 +122,7 @@
         hasAttachment() {
             const filename = this.#attachmentFilename || this.#input.val() || this.#input.text().trim();
 
-            return filename.length > 0
-                && parent.ECM.attachmentTable.getData().findIndex(attachment => attachment.description === filename) !== -1;
+            return filename.length > 0 && attachmentFindIndex(filename) !== -1;
         }
 
         /**
@@ -128,7 +131,9 @@
          * Método útil para excluir anexos em tabela Pai x Filho.
          */
         deleteAttachment() {
-            const attachmentIndex = parent.ECM.attachmentTable.getData().findIndex(attachment => attachment.description === this.#attachmentFilename);
+            const attachmentIndex = parent.ECM.attachmentTable.getData().findIndex(
+                attachment => attachment.description === this.#attachmentFilename
+            );
 
             setTimeout(() => this.#input.val("").trigger("change"), 500);
 
@@ -147,6 +152,27 @@
         hideActionButton() {
             this.#settings.showActionButton = false;
             this.#input.trigger("change");
+        }
+
+        filename(fileName, prefixName) {
+            if (fileName === undefined) {
+                return this.#input.data("filename") || this.#settings.filename;
+            }
+
+            this.#settings.filename = fileName;
+            this.#input.data("filename", fileName);
+
+            if (prefixName !== undefined) {
+                this.prefixName(prefixName);
+            }
+        }
+
+        prefixName(prefixName) {
+            if (prefixName === undefined) {
+                return this.#settings.prefixName;
+            }
+
+            this.#settings.prefixName = prefixName;
         }
 
         #getButtonsTemplate() {
@@ -226,7 +252,7 @@
             }
 
             // Evitar conflito de descrição do anexo
-            if (parent.ECM.attachmentTable.getData().findIndex(attachment => attachment.description === filename) !== -1) {
+            if (attachmentFindIndex(filename) !== -1) {
                 FLUIGC.toast({
                     title: "Atenção",
                     message: "Já existe um anexo com essa descrição",
@@ -249,7 +275,9 @@
         }
 
         #viewAttachment() {
-            const attachmentIndex = parent.ECM.attachmentTable.getData().findIndex(attachment => attachment.description === this.#attachmentFilename);
+            const attachmentIndex = parent.ECM.attachmentTable.getData().findIndex(
+                attachment => attachment.description === this.#attachmentFilename
+            );
 
             if (attachmentIndex === -1) {
                 FLUIGC.toast({
@@ -283,38 +311,41 @@
             return this;
         }
 
-        // executa o método
+        // Executa o Método
         if (isString(options)) {
             const methodName = options;
+            const methodArgs = Array.prototype.slice.call(arguments, 1);
 
-            if (methodsOnlyFirstElement.includes(methodName)) {
-                const element = $(this.get(0));
-                const data = element.data(pluginName);
+            let returnedValue = undefined;
 
-                if (!data || !data[methodName]) {
-                    return undefined;
+            this.each(function () {
+                let pluginData = $.data(this, pluginName);
+
+                if (!pluginData) {
+                    pluginData = new Plugin(this, {});
+                    $.data(this, pluginName, pluginData);
                 }
 
-                return data[methodName]();
-            }
+                if (!pluginData[methodName]) {
+                    return;
+                }
 
-            return this.each(function () {
-                const data = $(this).data(pluginName);
+                returnedValue = pluginData[methodName](...methodArgs);
 
-                if (data && data[methodName]) {
-                    data[methodName]();
+                if (returnedValue !== undefined) {
+                    return false;
                 }
             });
-        }
 
-        /**
-         * @type {AttachmentSettings}
-         */
-        const config = $.extend({}, defaults, options);
+            return returnedValue !== undefined
+                ? returnedValue
+                : this
+            ;
+        }
 
         return this.each(function () {
             if (!$.data(this, pluginName)) {
-                $.data(this, pluginName, new Plugin(this, config));
+                $.data(this, pluginName, new Plugin(this, options));
             }
         });
     };
@@ -342,7 +373,9 @@
                     return;
                 }
 
-                if (parent.ECM.newAttachmentsDocs.length && parent.ECM.newAttachmentsDocs.findIndex(attachment => attachment.name === file.name) !== -1) {
+                if (parent.ECM.newAttachmentsDocs.length
+                    && parent.ECM.newAttachmentsDocs.findIndex(attachment => attachment.name === file.name) !== -1
+                ) {
                     return;
                 }
 
@@ -357,7 +390,7 @@
                 const btnUpload = parent.document.getElementById("ecm-navigation-inputFile-clone");
                 const filename = btnUpload.getAttribute("data-filename");
 
-                if (parent.ECM.attachmentTable.getData().findIndex(attachment => attachment.description === filename) === -1) {
+                if (attachmentFindIndex(filename) === -1) {
                     return;
                 }
 
@@ -368,27 +401,11 @@
     });
 
 
-    $("head").append(`<style>
-.${pluginName}Component {
-    display: flex;
-    align-items: center;
-    flex-wrap: nowrap;
-}
-.${pluginName}Component input {
-    border-top-right-radius: 0 !important;
-    border-bottom-right-radius: 0 !important;
-}
-.${pluginName}Component_buttons {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-}
-.${pluginName}Component_buttons .btn {
-    outline: none !important;
-    outline-offset: unset !important;
-    border-radius: 0 !important;
-    height: 32px;
-}
+$("head").append(`<style>
+.${pluginName}Component { display: flex; align-items: center; flex-wrap: nowrap; }
+.${pluginName}Component input { border-top-right-radius: 0 !important; border-bottom-right-radius: 0 !important; }
+.${pluginName}Component_buttons { display: flex; align-items: center; justify-content: flex-end; }
+.${pluginName}Component_buttons .btn { outline: none !important; outline-offset: unset !important; border-radius: 0 !important; height: 32px; }
 </style>`);
 
 }(jQuery));
