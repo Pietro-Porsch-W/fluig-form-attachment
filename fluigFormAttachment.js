@@ -80,15 +80,20 @@
             this.#settings = $.extend({}, defaults, options);
             this.#input = $(element);
             this.#attachmentFilename = this.#input.val() || this.#input.text().trim();
-
-            this.#input
-                .prop("readonly", true)
-                .on("change", () => {
-                    this.#attachmentFilename = this.#input.val();
-                    this.#changeButtonsState();
-                })
-                .wrap(`<div class="${pluginName}Component"></div>`)
-                .after(`<div class="${pluginName}Component_buttons">${this.#getButtonsTemplate()}</div>`);
+            
+            /**
+             * @description Bug ao iniciar a função e então chamar novamente causa duplicidade dos botões
+             */
+            const linha = document.getElementById(this.#input[0].id).closest("tr");
+            if (!linha.querySelector('[class^="fluigFormAttachment"]')) 
+                this.#input
+                    .prop("readonly", true)
+                    .on("change", () => {
+                        this.#attachmentFilename = this.#input.val();
+                        this.#changeButtonsState();
+                    })
+                    .wrap(`<div class="${pluginName}Component"></div>`)
+                    .after(`<div class="${pluginName}Component_buttons">${this.#getButtonsTemplate()}</div>`);
 
             this.#container = this.#input.closest(`.${pluginName}Component`);
 
