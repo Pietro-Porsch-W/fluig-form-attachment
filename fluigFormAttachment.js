@@ -84,8 +84,8 @@
             /**
              * @description Bug ao iniciar a função e então chamar novamente causa duplicidade dos botões
              */
-            const linha = document.getElementById(this.#input[0].id).closest("tr");
-            if (!linha.querySelector('[class^="fluigFormAttachment"]')) 
+            const coluna = document.getElementById(this.#input[0].id)
+            if (!coluna.querySelector('[class^="fluigFormAttachment"]')) 
                 this.#input
                     .prop("readonly", true)
                     .on("change", () => {
