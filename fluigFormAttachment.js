@@ -84,8 +84,8 @@
             /**
              * @description Bug ao iniciar a função e então chamar novamente causa duplicidade dos botões
              */
-            const coluna = document.getElementById(this.#input[0].id)
-            if (!coluna.querySelector('[class^="fluigFormAttachment"]')) 
+            const coluna = document.getElementById(this.#input[0].id) 
+            if (!coluna.querySelector('[class^="fluigFormAttachment"]')) {
                 this.#input
                     .prop("readonly", true)
                     .on("change", () => {
@@ -95,13 +95,13 @@
                     .wrap(`<div class="${pluginName}Component"></div>`)
                     .after(`<div class="${pluginName}Component_buttons">${this.#getButtonsTemplate()}</div>`);
 
-            this.#container = this.#input.closest(`.${pluginName}Component`);
-
-            this.#container
-                .on("click", `.${pluginName}BtnDeleteFile`, () => this.#confirmDeleteAttachment())
-                .on("click", `.${pluginName}BtnUpuloadFile`, () => this.#uploadAttachment())
-                .on("click", `.${pluginName}BtnViewerFile`, () => this.#viewAttachment())
-            ;
+                this.#container = this.#input.closest(`.${pluginName}Component`);
+                 
+                this.#container
+                .on("click", `.${pluginName}BtnDeleteFile`, (e) => { e.preventDefault(); this.#confirmDeleteAttachment(); })
+                .on("click", `.${pluginName}BtnUploadFile`, (e) => { e.preventDefault(); this.#uploadAttachment(); })
+                .on("click", `.${pluginName}BtnViewerFile`, (e) => { e.preventDefault(); this.#viewAttachment(); }); 
+            }
         }
 
         /**
@@ -295,8 +295,15 @@
             }
 
             const attachment = parent.ECM.attachmentTable.getRow(attachmentIndex);
+            
+            const fileName = String(attachment.physicalFileName).toLowerCase(); 
+            const compressedExts = [
+                '.zip', '.rar', '.7z', '.tar', '.tar.gz', '.tgz', '.tar.bz2', '.tbz2', '.tar.xz', '.txz', '.gz', '.bz2', 
+                '.xz', '.lz', '.lz4', '.zst', '.zstd', '.cab', '.arj', '.ace', '.z', '.apk', '.jar', '.war', '.ear'
+            ];
 
-            if (attachment.documentId) {
+            const isFolder = compressedExts.some(ext => fileName.endsWith(ext));
+            if (attachment.documentId && !isFolder) {
                 parent.WKFViewAttachment.openAttachmentView(parent.WCMAPI.userCode, attachment.documentId, attachment.version);
             } else {
                 parent.WKFViewAttachment.downloadAttach([attachmentIndex]);
