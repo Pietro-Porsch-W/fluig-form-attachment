@@ -21,6 +21,14 @@
 
     const pluginName = "fluigFormAttachment";
 
+    const deleteFileClassName = "BtnDeleteFile";
+    const uploadFileClassname = "BtnUploadFile";
+    const viewerFileClassname = "BtnViewerFile";
+    const compressedExtensions = [
+        '.7z', '.zip', '.rar', '.gz', '.tar', '.tbz2', '.tgz', '.bz2', '.lz', '.lz4','.txz',
+        '.xz', '.z', '.zst', '.zstd', '.war', '.ear', '.jar','.apk', '.arj', '.ace', '.cab',
+    ];
+
     const isString = item => typeof item === "string";
 
     /**
@@ -80,28 +88,23 @@
             this.#settings = $.extend({}, defaults, options);
             this.#input = $(element);
             this.#attachmentFilename = this.#input.val() || this.#input.text().trim();
-            
-            /**
-             * @description Bug ao iniciar a função e então chamar novamente causa duplicidade dos botões
-             */
-            const coluna = document.getElementById(this.#input[0].id) 
-            if (!coluna.querySelector('[class^="fluigFormAttachment"]')) {
-                this.#input
-                    .prop("readonly", true)
-                    .on("change", () => {
-                        this.#attachmentFilename = this.#input.val();
-                        this.#changeButtonsState();
-                    })
-                    .wrap(`<div class="${pluginName}Component"></div>`)
-                    .after(`<div class="${pluginName}Component_buttons">${this.#getButtonsTemplate()}</div>`);
 
-                this.#container = this.#input.closest(`.${pluginName}Component`);
-                 
-                this.#container
-                .on("click", `.${pluginName}BtnDeleteFile`, (e) => { e.preventDefault(); this.#confirmDeleteAttachment(); })
-                .on("click", `.${pluginName}BtnUploadFile`, (e) => { e.preventDefault(); this.#uploadAttachment(); })
-                .on("click", `.${pluginName}BtnViewerFile`, (e) => { e.preventDefault(); this.#viewAttachment(); }); 
-            }
+            this.#input
+                .prop("readonly", true)
+                .on("change", () => {
+                    this.#attachmentFilename = this.#input.val();
+                    this.#changeButtonsState();
+                })
+                .wrap(`<div class="${pluginName}Component"></div>`)
+                .after(`<div class="${pluginName}Component_buttons">${this.#getButtonsTemplate()}</div>`);
+
+            this.#container = this.#input.closest(`.${pluginName}Component`);
+
+            this.#container
+                .on("click", `.${pluginName}${deleteFileClassName}`, () => this.#confirmDeleteAttachment())
+                .on("click", `.${pluginName}${uploadFileClassname}`, () => this.#uploadAttachment())
+                .on("click", `.${pluginName}${viewerFileClassname}`, () => this.#viewAttachment())
+            ;
         }
 
         /**
@@ -184,9 +187,9 @@
             const hasFileSelected = this.#attachmentFilename.length !== 0;
             const canShowActionButton = this.#canDisplayActionButton();
 
-            return `<button type="button" class="${pluginName}BtnAction ${pluginName}BtnDeleteFile btn btn-danger btn-sm ${(canShowActionButton && hasFileSelected) ? '' : 'hide'}" title="Remover Anexo"><i class="flaticon flaticon-trash icon-sm"></i></button>`
-                + `<button type="button" class="${pluginName}BtnAction ${pluginName}BtnUpuloadFile btn btn-success btn-sm ${(canShowActionButton && !hasFileSelected) ? '' : 'hide'}" title="Enviar Anexo"><i class="flaticon flaticon-upload icon-sm"></i></button>`
-                + `<button type="button" class="${pluginName}BtnViewerFile btn btn-info btn-sm ${hasFileSelected ? '' : 'hide'}" title="Visualizar Anexo"><i class="flaticon flaticon-view icon-sm"></i></button>`
+            return `<button type="button" class="${pluginName}BtnAction ${pluginName}${deleteFileClassName} btn btn-danger btn-sm ${(canShowActionButton && hasFileSelected) ? '' : 'hide'}" title="Remover Anexo"><i class="flaticon flaticon-trash icon-sm"></i></button>`
+                + `<button type="button" class="${pluginName}BtnAction ${pluginName}${uploadFileClassname} btn btn-success btn-sm ${(canShowActionButton && !hasFileSelected) ? '' : 'hide'}" title="Enviar Anexo"><i class="flaticon flaticon-upload icon-sm"></i></button>`
+                + `<button type="button" class="${pluginName}${viewerFileClassname} btn btn-info btn-sm ${hasFileSelected ? '' : 'hide'}" title="Visualizar Anexo"><i class="flaticon flaticon-view icon-sm"></i></button>`
             ;
         }
 
@@ -207,20 +210,20 @@
 
             if (this.#canDisplayActionButton()) {
                 if (hasFileSelected) {
-                    this.#container.find(`.${pluginName}BtnUpuloadFile`).addClass("hide");
-                    this.#container.find(`.${pluginName}BtnDeleteFile`).removeClass("hide");
+                    this.#container.find(`.${pluginName}${uploadFileClassname}`).addClass("hide");
+                    this.#container.find(`.${pluginName}${deleteFileClassName}`).removeClass("hide");
                 } else {
-                    this.#container.find(`.${pluginName}BtnDeleteFile`).addClass("hide");
-                    this.#container.find(`.${pluginName}BtnUpuloadFile`).removeClass("hide");
+                    this.#container.find(`.${pluginName}${deleteFileClassName}`).addClass("hide");
+                    this.#container.find(`.${pluginName}${uploadFileClassname}`).removeClass("hide");
                 }
             } else {
                 this.#container.find(`.${pluginName}BtnAction`).addClass("hide");
             }
 
             if (hasFileSelected) {
-                this.#container.find(`.${pluginName}BtnViewerFile`).removeClass("hide");
+                this.#container.find(`.${pluginName}${viewerFileClassname}`).removeClass("hide");
             } else {
-                this.#container.find(`.${pluginName}BtnViewerFile`).addClass("hide");
+                this.#container.find(`.${pluginName}${viewerFileClassname}`).addClass("hide");
             }
         }
 
@@ -295,15 +298,10 @@
             }
 
             const attachment = parent.ECM.attachmentTable.getRow(attachmentIndex);
-            
-            const fileName = String(attachment.physicalFileName).toLowerCase(); 
-            const compressedExts = [
-                '.zip', '.rar', '.7z', '.tar', '.tar.gz', '.tgz', '.tar.bz2', '.tbz2', '.tar.xz', '.txz', '.gz', '.bz2', 
-                '.xz', '.lz', '.lz4', '.zst', '.zstd', '.cab', '.arj', '.ace', '.z', '.apk', '.jar', '.war', '.ear'
-            ];
+            const physicalFileName = attachment.physicalFileName.toLowerCase();
+            const isCompressedFile = compressedExtensions.some(extension => physicalFileName.endsWith(extension));
 
-            const isFolder = compressedExts.some(ext => fileName.endsWith(ext));
-            if (attachment.documentId && !isFolder) {
+            if (attachment.documentId && !isCompressedFile) {
                 parent.WKFViewAttachment.openAttachmentView(parent.WCMAPI.userCode, attachment.documentId, attachment.version);
             } else {
                 parent.WKFViewAttachment.downloadAttach([attachmentIndex]);
